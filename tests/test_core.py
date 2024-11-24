@@ -5,6 +5,7 @@ Unit tests for core functionalities.
 import unittest
 import numpy as np
 from pynld.core import DynamicalSystem, IntegrationParameters
+from pynld.plotting import phase_portrait, evolution_plot
 
 class TestDynamicalSystem(unittest.TestCase):
 
@@ -90,4 +91,4 @@ if __name__ == "__main__":
     
     ds = DynamicalSystem(system, 0.0, x0, parameters)
     ds.evolve(100)
-    ds.plot([0,1], 'MPL')
+    phase_portrait(ds,'x','v','MPL', notebook=False)

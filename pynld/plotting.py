@@ -68,3 +68,60 @@ def evolution_plot_mpl(ds, var_names, notebook):
     plt.show()
 
 # Phase portrait plots
+# Time evolution plots
+def phase_portrait(ds, x1, x2, method='Bokeh', notebook=True):
+    """
+    Phase portrait of the system using the latest solution.
+    If method == 'Bokeh' (default), uses the Bokeh background.
+    If method == 'MPL', uses Matplotlib.
+    If notebook == True (default), then adjusts the plot for Jupyter nb.
+    """
+    if ds.x_sol is None or ds.t_sol is None:
+        raise ValueError("No solution found. Please evolve the system first.")
+
+    if x1 not in ds.x_names:
+        raise ValueError(f"{x1} is not in the list of variables")
+    if x2 not in ds.x_names:
+        raise ValueError(f"{x2} is not in the list of variables")
+
+    if method=='Bokeh':
+        phase_portrait_bokeh(ds, x1, x2, notebook)
+    elif method=='MPL':
+        phase_portrait_mpl(ds, x1, x2, notebook)
+    else:
+        raise ValueError("Use 'Bokeh' or 'MPL'")
+
+def phase_portrait_bokeh(ds, x1, x2, notebook):
+    p = figure(title="Phase portrait", 
+               x_axis_label=f"{x1}",
+               y_axis_label=f"{x2}",
+               width=800,
+               height=800)
+    if notebook:
+        output_notebook()
+
+    i = ds.x_names.index(x1)
+    j = ds.x_names.index(x2)
+    p.line(ds.x_sol[i], ds.x_sol[j],
+           line_width=2, color=PLOT_COLORS[0])
+    p.scatter(ds.x_sol[i,0], ds.x_sol[j,0],
+              size=5, color=PLOT_COLORS[0])
+
+    p.add_tools(HoverTool(tooltips=[(f"{x1}", "@x"), (f"{x2}", "@y")]))
+    show(p)
+
+def phase_portrait_mpl(ds, x1, x2, notebook):
+    if notebook:
+        plt.style.use(['science', 'grid', 'notebook'])
+    else:
+        plt.style.use(['science', 'grid'])
+
+    plt.figure(figsize=(8,8))
+    i = ds.x_names.index(x1)
+    j = ds.x_names.index(x2)
+    plt.plot(ds.x_sol[i], ds.x_sol[j], '-', lw=2.0, color=PLOT_COLORS[0])
+    plt.scatter(ds.x_sol[i,0], ds.x_sol[j,0], s=10, color=PLOT_COLORS[0])
+    plt.xlabel(f"{x1}")
+    plt.ylabel(f"{x2}")
+    plt.title("Phase portrait")
+    plt.show()
