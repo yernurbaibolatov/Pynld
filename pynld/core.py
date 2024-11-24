@@ -88,6 +88,14 @@ class DynamicalSystem:
         status += f"Time step: {self.integration_params.time_step}\n"
         return status
     
+    def set_parameter(self, name, val):
+        # Set the parameter 'name' to value 'val'
+        if name in self.p_names:
+            i = self.p_names.index(name)
+            self.p[i] = val
+        else:
+            raise ValueError(f"{name} is not found in the list of parameters.")
+
     def evolve(self, t_range):
         # Evolves the system by t_range
         t_span = [self.t, self.t + t_range]
@@ -110,34 +118,3 @@ class DynamicalSystem:
         self.x = self.x_sol[:,-1]
         self.xdot = self.xdot_sol[:,-1]
         return
-
-    def plot(self, vars, method='Bokeh'):
-        if method == 'Bokeh':
-            self.plot_bok(vars)
-        elif method == 'MPL':
-            self.plot_mpl(vars)
-
-    def plot_bok(self, vars):
-        p = figure(title="Time evolution", 
-                   x_axis_label="time",
-                   y_axis_label="variables",
-                   width=1200,
-                   height=600)
-        for i in vars:
-            p.line(self.t_sol, self.x_sol[i],
-                   legend_label=f"{self.x_names[i]}",
-                   line_width=2, color=self.colors[i])
-        show(p)
-
-    def plot_mpl(self, vars):
-        
-        plt.figure(figsize=(12,6))
-        for i in vars:
-            plt.plot(self.t_sol, self.x_sol[i], '-', lw=2.0, 
-                    color=self.colors[i], label=f"{self.x_names[i]}")
-        plt.xlabel("time")
-        plt.ylabel("variables")
-        plt.title("Time evolution")
-        plt.legend()
-        plt.show()
-            
