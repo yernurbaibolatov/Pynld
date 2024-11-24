@@ -96,8 +96,17 @@ class DynamicalSystem:
         else:
             raise ValueError(f"{name} is not found in the list of parameters.")
 
-    def evolve(self, t_range):
+    def integrate(self, t_range, tr=0):
         # Evolves the system by t_range
+        # tr is the transient time in the beginning
+        tr_span = [self.t, self.t + tr]
+        tr_sol = solve_ivp(self.system, t_span=tr_span, y0=self.x, 
+                           args=(self.p,), 
+                           method=self.integration_params.solver)
+        self.t = tr_sol.t[-1]
+        self.x = tr_sol.y[:,-1]
+
+        # actual solution
         t_span = [self.t, self.t + t_range]
         self.t_sol = np.arange(self.t, self.t + t_range, 
                                self.integration_params.time_step)

@@ -102,10 +102,10 @@ def phase_portrait_bokeh(ds, x1, x2, notebook):
 
     i = ds.x_names.index(x1)
     j = ds.x_names.index(x2)
-    p.line(ds.x_sol[i], ds.x_sol[j],
-           line_width=2, color=PLOT_COLORS[0])
     p.scatter(ds.x_sol[i,0], ds.x_sol[j,0],
               size=5, color=PLOT_COLORS[0])
+    p.line(ds.x_sol[i], ds.x_sol[j],
+           line_width=2, color=PLOT_COLORS[0])
 
     p.add_tools(HoverTool(tooltips=[(f"{x1}", "@x"), (f"{x2}", "@y")]))
     show(p)
