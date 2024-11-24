@@ -2,7 +2,12 @@
 Core functionalities for dynamical systems.
 """
 import numpy as np
-from integrators import runge_kutta_stepper
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+import scienceplots
+from bokeh.plotting import figure, show
+
+plt.style.use(['science', 'grid'])
 
 class IntegrationParameters:
     def __init__(self, solver='RK45', time_step = 1e-2, accuracy = 1e-5):
@@ -31,6 +36,11 @@ class DynamicalSystem:
                 'y':    0.0
             }  
         """
+        if not callable(system):
+            raise TypeError("The 'system' argument must be a callable.")
+        if not isinstance(x0, dict) or not isinstance(parameters, dict):
+            raise TypeError("'x0' and 'parameters' must be dictionaries.")
+        
         self.system = system
         self.integration_params = integration_params or IntegrationParameters()
 
@@ -69,32 +79,65 @@ class DynamicalSystem:
         for name, val in zip(self.x_names, self.xdot):
             status += f"\td{name}/dt:\t{val:2.3f}\n"
         
-        status += f"Parameters\n"
+        status += f"Parameters:\n"
         for name, val in zip(self.p_names, self.p):
             status += f"\t{name}:\t{val:2.3f}\n"
 
+        status += f"Integration parameters:\n"
+        status += f"Solver: {self.integration_params.solver}\n"
+        status += f"Time step: {self.integration_params.time_step}\n"
         return status
     
     def evolve(self, t_range):
         # Evolves the system by t_range
+        t_span = [self.t, self.t + t_range]
         self.t_sol = np.arange(self.t, self.t + t_range, 
                                self.integration_params.time_step)
-        self.x_sol = np.zeros((self.N_dim, len(self.t_sol)), dtype=np.float64)
+        # integrate the system
+        sol = solve_ivp(self.system, t_span=t_span, y0=self.x, 
+                        t_eval=self.t_sol, args=(self.p,),
+                        method=self.integration_params.solver)
+        # store the solution
+        self.x_sol = sol.y.copy()
         self.xdot_sol = np.zeros_like(self.x_sol)
-        self.x_sol[:,0] = self.x
-        self.xdot_sol[:,0] = self.xdot
-
-        for i in range(len(self.t_sol)-1):
-            self.x_sol[:,i+1] = runge_kutta_stepper(self.system, 
-                                                    self.t_sol[i], 
-                                                    self.x_sol[:,i], self.p, 
-                                                    self.integration_params.time_step)
-            self.xdot_sol[:,i+1] = self.system(self.t_sol[i+1],
-                                               self.x_sol[:,i+1],
-                                               self.p)
+        for i in range(len(self.t_sol)):
+            self.xdot_sol[:,i] = self.system(self.t_sol[i],
+                                             self.x_sol[:,i],
+                                             self.p)
         
+        # update the system state
         self.t = self.t_sol[-1]
         self.x = self.x_sol[:,-1]
         self.xdot = self.xdot_sol[:,-1]
+        return
 
+    def plot(self, vars, method='Bokeh'):
+        if method == 'Bokeh':
+            self.plot_bok(vars)
+        elif method == 'MPL':
+            self.plot_mpl(vars)
+
+    def plot_bok(self, vars):
+        p = figure(title="Time evolution", 
+                   x_axis_label="time",
+                   y_axis_label="variables",
+                   width=1200,
+                   height=600)
+        for i in vars:
+            p.line(self.t_sol, self.x_sol[i],
+                   legend_label=f"{self.x_names[i]}",
+                   line_width=2, color=self.colors[i])
+        show(p)
+
+    def plot_mpl(self, vars):
+        
+        plt.figure(figsize=(12,6))
+        for i in vars:
+            plt.plot(self.t_sol, self.x_sol[i], '-', lw=2.0, 
+                    color=self.colors[i], label=f"{self.x_names[i]}")
+        plt.xlabel("time")
+        plt.ylabel("variables")
+        plt.title("Time evolution")
+        plt.legend()
+        plt.show()
             
