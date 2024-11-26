@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import scienceplots
-from bokeh.plotting import figure, show, output_notebook, curdoc
+from bokeh.plotting import figure, show, output_notebook 
 from bokeh.models import HoverTool, ColumnDataSource
 
 PLOT_COLORS = [
@@ -115,7 +115,7 @@ def phase_portrait_bokeh(ds, x1, x2, notebook):
 
     p.add_tools(HoverTool(tooltips=[(f"{x1}", "@x"), 
                                     (f"{x2}", "@y"), 
-                                    (f"time", "@t")]))
+                                    ("time", "@t")]))
     show(p)
 
 def phase_portrait_mpl(ds, x1, x2, notebook):

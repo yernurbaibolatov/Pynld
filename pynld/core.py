@@ -59,26 +59,29 @@ class DynamicalSystem:
         self.t_sol = np.zeros(0, dtype=np.float64)
         self.x_sol = np.zeros((self.N_dim,0), dtype=np.float64)
         self.xdot_sol = np.zeros((self.N_dim,0), dtype=np.float64)
+        self.n_points = 0 # number of point in the solution
+        # array of evaluated values at point of the solution
+        self.f_sol = np.zeros(0, dtype=np.float64) 
 
     def __repr__(self):
-        status = f"A generic non-autonomous dynamical system\n"
+        status = "A generic non-autonomous dynamical system\n"
         status += f"Dimension:\t{self.N_dim + 1}\n"
         
-        status += f"State vector:\n"
+        status += "State vector:\n"
         status += f"\tt:\t{self.t:2.3f}\n"
         for name, val in zip(self.x_names, self.x):
             status += f"\t{name}:\t{val:2.3f}\n"
         
-        status += f"Field vector:\n"
-        status += f"\tdt/dt:\t1\n"
+        status += "Field vector:\n"
+        status += "\tdt/dt:\t1\n"
         for name, val in zip(self.x_names, self.xdot):
             status += f"\td{name}/dt:\t{val:2.3f}\n"
         
-        status += f"Parameters:\n"
+        status += "Parameters:\n"
         for name, val in zip(self.p_names, self.p):
             status += f"\t{name}:\t{val:2.3f}\n"
 
-        status += f"Integration parameters:\n"
+        status += "Integration parameters:\n"
         status += f"Solver: {self.integration_params.solver}\n"
         status += f"Time step: {self.integration_params.time_step}\n"
         return status
@@ -110,9 +113,10 @@ class DynamicalSystem:
                         t_eval=self.t_sol, args=(self.p,),
                         method=self.integration_params.solver)
         # store the solution
+        self.n_points = len(self.t_sol)
         self.x_sol = sol.y.copy()
         self.xdot_sol = np.zeros_like(self.x_sol)
-        for i in range(len(self.t_sol)):
+        for i in range(self.n_points):
             self.xdot_sol[:,i] = self.system(self.t_sol[i],
                                              self.x_sol[:,i],
                                              self.p)
@@ -134,3 +138,15 @@ class DynamicalSystem:
             t_range and tr: parameters that are passed
             to the integrate method.
         """
+        self.integrate(t_range, tr)
+        test_eval = eval_f(self.t_sol[0],
+                           self.x_sol[:,0],
+                           self.xdot_sol[:,0])
+
+        self.f_sol = np.empty((len(test_eval), self.n_points), dtype=np.float64)
+        for i in range(self.n_points):
+            self.f_sol[:,i] = eval_f(self.t_sol[i],
+                                     self.x_sol[:,i],
+                                     self.xdot_sol[:,i])
+        
+        return
