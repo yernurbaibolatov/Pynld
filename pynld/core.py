@@ -3,11 +3,6 @@ Core functionalities for dynamical systems.
 """
 import numpy as np
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
-import scienceplots
-from bokeh.plotting import figure, show
-
-plt.style.use(['science', 'grid'])
 
 class IntegrationParameters:
     def __init__(self, solver='RK45', time_step = 1e-2, accuracy = 1e-5):
@@ -127,3 +122,15 @@ class DynamicalSystem:
         self.x = self.x_sol[:,-1]
         self.xdot = self.xdot_sol[:,-1]
         return
+
+    def evaluate(self, eval_f, t_range, tr=0):
+        """
+        Evaluate a function eval_f(t, x, xdot) for
+        each point of the solution obtained from the
+        integrate method.
+        Parameters:
+            eval_f: a callable that returns a single or 
+            array of values.
+            t_range and tr: parameters that are passed
+            to the integrate method.
+        """

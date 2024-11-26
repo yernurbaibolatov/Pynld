@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import scienceplots
-from bokeh.plotting import figure, show, output_notebook
-from bokeh.models import HoverTool
+from bokeh.plotting import figure, show, output_notebook, curdoc
+from bokeh.models import HoverTool, ColumnDataSource
 
 PLOT_COLORS = [
     '#344966', # Indigo dye
@@ -92,6 +92,8 @@ def phase_portrait(ds, x1, x2, method='Bokeh', notebook=True):
         raise ValueError("Use 'Bokeh' or 'MPL'")
 
 def phase_portrait_bokeh(ds, x1, x2, notebook):
+    # Create a ColumnDataSource
+
     p = figure(title="Phase portrait", 
                x_axis_label=f"{x1}",
                y_axis_label=f"{x2}",
@@ -102,12 +104,18 @@ def phase_portrait_bokeh(ds, x1, x2, notebook):
 
     i = ds.x_names.index(x1)
     j = ds.x_names.index(x2)
+    source = ColumnDataSource(data=dict(t=ds.t_sol, 
+                                        x=ds.x_sol[i], 
+                                        y=ds.x_sol[j]))
+
     p.scatter(ds.x_sol[i,0], ds.x_sol[j,0],
               size=5, color=PLOT_COLORS[0])
-    p.line(ds.x_sol[i], ds.x_sol[j],
+    p.line('x', 'y', source=source,
            line_width=2, color=PLOT_COLORS[0])
 
-    p.add_tools(HoverTool(tooltips=[(f"{x1}", "@x"), (f"{x2}", "@y")]))
+    p.add_tools(HoverTool(tooltips=[(f"{x1}", "@x"), 
+                                    (f"{x2}", "@y"), 
+                                    (f"time", "@t")]))
     show(p)
 
 def phase_portrait_mpl(ds, x1, x2, notebook):
