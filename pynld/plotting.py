@@ -12,11 +12,11 @@ PLOT_COLORS = [
 ]
 
 # Time evolution plots
-def evolution_plot(ds, var_names=None, method='Bokeh', notebook=True):
+def evolution_plot(ds, var_names=None, method='MPL', notebook=True):
     """
     Plot the time evolution of the latest solution.
-    If method == 'Bokeh' (default), uses the Bokeh background.
-    If method == 'MPL', uses Matplotlib.
+    If method == 'Bokeh', uses the Bokeh background.
+    If method == 'MPL' (default), uses Matplotlib.
     If notebook == True (default), then adjusts the plot for Jupyter nb.
     """
     if ds.x_sol is None or ds.t_sol is None:
@@ -41,6 +41,8 @@ def evolution_plot_bokeh(ds, var_names, notebook):
     if notebook:
         output_notebook()
 
+    if type(var_names) is str:
+        var_names = [var_names]
     indices = [ds.x_names.index(var) for var in var_names if var in ds.x_names]
     for i, var in zip(indices,var_names):
         p.line(ds.t_sol, ds.x_sol[i],
@@ -48,6 +50,7 @@ def evolution_plot_bokeh(ds, var_names, notebook):
                line_width=2, color=PLOT_COLORS[i])
         
     p.add_tools(HoverTool(tooltips=[("Time", "@x"), ("Value", "@y")]))
+    p.legend.location = 'top_left'
     show(p)
 
 def evolution_plot_mpl(ds, var_names, notebook):
@@ -57,6 +60,8 @@ def evolution_plot_mpl(ds, var_names, notebook):
         plt.style.use(['science', 'grid'])
 
     plt.figure(figsize=(12,6))
+    if type(var_names) is str:
+        var_names = [var_names]
     indices = [ds.x_names.index(var) for var in var_names if var in ds.x_names]
     for i, var in zip(indices, var_names):
         plt.plot(ds.t_sol, ds.x_sol[i], '-', lw=2.0, 
@@ -67,8 +72,69 @@ def evolution_plot_mpl(ds, var_names, notebook):
     plt.legend()
     plt.show()
 
+def evolution_dot_plot(ds, var_names=None, method='Bokeh', notebook=True):
+    """
+    Plot the time evolution of the latest solution.
+    If method == 'Bokeh' (default), uses the Bokeh background.
+    If method == 'MPL', uses Matplotlib.
+    If notebook == True (default), then adjusts the plot for Jupyter nb.
+    """
+    if ds.x_sol is None or ds.t_sol is None:
+        raise ValueError("No solution found. Please evolve the system first.")
+
+    if var_names is None:
+        var_names = ds.x_names
+
+    if method=='Bokeh':
+        evolution_dot_plot_bokeh(ds, var_names, notebook)
+    elif method=='MPL':
+        evolution_dot_plot_mpl(ds, var_names, notebook)
+    else:
+        raise ValueError("Use 'Bokeh' or 'MPL'")
+
+def evolution_dot_plot_bokeh(ds, var_names, notebook):
+    p = figure(title="Time evolution", 
+               x_axis_label="time",
+               y_axis_label="variable derivatives",
+               width=1200,
+               height=600)
+    if notebook:
+        output_notebook()
+
+    if type(var_names) is str:
+        var_names = [var_names]
+    indices = [ds.x_names.index(var) for var in var_names if var in ds.x_names]
+    for i, var in zip(indices,var_names):
+        p.line(ds.t_sol, ds.xdot_sol[i],
+               legend_label=f"{var}",
+               line_width=2, color=PLOT_COLORS[i])
+        
+    p.add_tools(HoverTool(tooltips=[("Time", "@x"), ("Value", "@y")]))
+    p.legend.location = 'top_left'
+    show(p)
+
+def evolution_dot_plot_mpl(ds, var_names, notebook):
+    if notebook:
+        plt.style.use(['science', 'grid', 'notebook'])
+    else:
+        plt.style.use(['science', 'grid'])
+
+    plt.figure(figsize=(12,6))
+    if type(var_names) is str:
+        var_names = [var_names]
+    indices = [ds.x_names.index(var) for var in var_names if var in ds.x_names]
+    for i, var in zip(indices, var_names):
+        plt.plot(ds.t_sol, ds.xdot_sol[i], '-', lw=2.0, 
+                color=PLOT_COLORS[i], label=f"{var}")
+        plt.axhline(ds.xdot_sol[i].mean(), '--', lw=2.0,
+                color=PLOT_COLORS[i], label=f"{var} average")
+    plt.xlabel("time")
+    plt.ylabel("variables")
+    plt.title("Time evolution")
+    plt.legend()
+    plt.show()
+
 # Phase portrait plots
-# Time evolution plots
 def phase_portrait(ds, x1, x2, method='Bokeh', notebook=True):
     """
     Phase portrait of the system using the latest solution.

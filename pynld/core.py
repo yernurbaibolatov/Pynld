@@ -5,13 +5,14 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 class IntegrationParameters:
-    def __init__(self, solver='RK45', time_step = 1e-2, accuracy = 1e-5):
+    def __init__(self, solver='RK45', time_step = 1e-4, accuracy = 1e-5):
         self.solver = solver
         self.time_step = time_step
         self.accuracy = accuracy
 
 class DynamicalSystem:
-    def __init__(self, system, t0, x0, parameters, integration_params = None):
+    def __init__(self, system, t0, x0, parameters, 
+                 integration_params = None, jac=None):
         """
         Initialize the dynamical system.
         
@@ -20,6 +21,7 @@ class DynamicalSystem:
             t0: Initial time
             x0: A dictionary of initial conditions for the system.
             parameters: A dictionary of parameters of the system
+            jac (optional): the Jacobian of the system 
         Example:
             parameters = {
                 'nu':   1.1,
@@ -37,6 +39,7 @@ class DynamicalSystem:
             raise TypeError("'x0' and 'parameters' must be dictionaries.")
         
         self.system = system
+        self.jac = jac
         self.integration_params = integration_params or IntegrationParameters()
 
         # extracting the parameters
@@ -52,8 +55,9 @@ class DynamicalSystem:
 
         # technical parameters
         self.N_dim = len(x0) # dimension of the system (without time)
-        self.dt = 1e-4 # time step for solvers
-        self.solver = 'RK45' # default solver is Runge-Kutta 4(5)
+        self.dt = self.integration_params.time_step # time step for solvers
+        # default solver is Runge-Kutta 4(5)
+        self.solver = self.integration_params.solver 
 
         # trajectory of the last integration
         self.t_sol = np.zeros(0, dtype=np.float64)
@@ -100,7 +104,8 @@ class DynamicalSystem:
         tr_span = [self.t, self.t + tr]
         tr_sol = solve_ivp(self.system, t_span=tr_span, y0=self.x, 
                            args=(self.p,), 
-                           method=self.integration_params.solver)
+                           method=self.integration_params.solver,
+                           jac=self.jac)
         self.t = tr_sol.t[-1]
         self.x = tr_sol.y[:,-1]
 
@@ -111,7 +116,8 @@ class DynamicalSystem:
         # integrate the system
         sol = solve_ivp(self.system, t_span=t_span, y0=self.x, 
                         t_eval=self.t_sol, args=(self.p,),
-                        method=self.integration_params.solver)
+                        method=self.integration_params.solver,
+                        jac=self.jac)
         # store the solution
         self.n_points = len(self.t_sol)
         self.x_sol = sol.y.copy()
@@ -148,5 +154,4 @@ class DynamicalSystem:
             self.f_sol[:,i] = eval_f(self.t_sol[i],
                                      self.x_sol[:,i],
                                      self.xdot_sol[:,i])
-        
         return
