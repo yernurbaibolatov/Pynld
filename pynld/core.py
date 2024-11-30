@@ -5,10 +5,12 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 class IntegrationParameters:
-    def __init__(self, solver='RK45', time_step = 1e-4, accuracy = 1e-5):
+    def __init__(self, solver='LSODA', time_step = 1e-3, 
+                 accuracy = 1e-5, n_eval = 50_000):
         self.solver = solver
         self.time_step = time_step
         self.accuracy = accuracy
+        self.n_eval = n_eval
 
 class DynamicalSystem:
     def __init__(self, system, t0, x0, parameters, 
@@ -38,6 +40,7 @@ class DynamicalSystem:
         if not isinstance(x0, dict) or not isinstance(parameters, dict):
             raise TypeError("'x0' and 'parameters' must be dictionaries.")
         
+
         self.system = system
         self.jac = jac
         self.integration_params = integration_params or IntegrationParameters()
@@ -52,6 +55,10 @@ class DynamicalSystem:
 
         self.t = t0
         self.xdot = system(self.t, self.x, self.p)
+
+        # save the initial conditions
+        self.initial_t = t0
+        self.initial_x = self.x
 
         # technical parameters
         self.N_dim = len(x0) # dimension of the system (without time)
@@ -102,7 +109,16 @@ class DynamicalSystem:
         # Evolves the system by t_range
         # tr is the transient time in the beginning
         tr_span = [self.t, self.t + tr]
-        tr_sol = solve_ivp(self.system, t_span=tr_span, y0=self.x, 
+        if self.jac is None:
+           tr_sol = solve_ivp(self.system, 
+                           t_span=tr_span, 
+                           y0=self.x, 
+                           args=(self.p,), 
+                           method=self.integration_params.solver)
+        else: 
+            tr_sol = solve_ivp(self.system, 
+                           t_span=tr_span, 
+                           y0=self.x, 
                            args=(self.p,), 
                            method=self.integration_params.solver,
                            jac=self.jac)
@@ -111,16 +127,28 @@ class DynamicalSystem:
 
         # actual solution
         t_span = [self.t, self.t + t_range]
-        self.t_sol = np.arange(self.t, self.t + t_range, 
-                               self.integration_params.time_step)
+        t_eval = np.linspace(self.t, self.t + t_range, 
+                           self.integration_params.n_eval)
         # integrate the system
-        sol = solve_ivp(self.system, t_span=t_span, y0=self.x, 
-                        t_eval=self.t_sol, args=(self.p,),
+        if self.jac is None:
+            sol = solve_ivp(self.system, 
+                        t_span=t_span, 
+                        y0=self.x, 
+                        t_eval=t_eval, 
+                        args=(self.p,),
+                        method=self.integration_params.solver)
+        else:
+            sol = solve_ivp(self.system, 
+                        t_span=t_span, 
+                        y0=self.x, 
+                        t_eval=t_eval, 
+                        args=(self.p,),
                         method=self.integration_params.solver,
                         jac=self.jac)
         # store the solution
-        self.n_points = len(self.t_sol)
+        self.t_sol = sol.t
         self.x_sol = sol.y.copy()
+        self.n_points = len(self.t_sol)
         self.xdot_sol = np.zeros_like(self.x_sol)
         for i in range(self.n_points):
             self.xdot_sol[:,i] = self.system(self.t_sol[i],
@@ -145,13 +173,21 @@ class DynamicalSystem:
             to the integrate method.
         """
         self.integrate(t_range, tr)
-        test_eval = eval_f(self.t_sol[0],
-                           self.x_sol[:,0],
-                           self.xdot_sol[:,0])
-
-        self.f_sol = np.empty((len(test_eval), self.n_points), dtype=np.float64)
+ 
+        f_eval = np.zeros((self.n_points), dtype=np.float64)
         for i in range(self.n_points):
-            self.f_sol[:,i] = eval_f(self.t_sol[i],
-                                     self.x_sol[:,i],
-                                     self.xdot_sol[:,i])
-        return
+            f_eval[i] = eval_f(self.t_sol[i],
+                               self.x_sol[:,i],
+                               self.xdot_sol[:,i])
+        return f_eval
+    
+    def reset(self):
+        # Resets the system back to its initial condition
+        self.t = self.initial_t
+        self.x = self.initial_x
+        self.xdot = self.system(self.t, self.x, self.p)
+
+        self.t_sol = np.zeros(0, dtype=np.float64)
+        self.x_sol = np.zeros((self.N_dim,0), dtype=np.float64)
+        self.xdot_sol = np.zeros((self.N_dim,0), dtype=np.float64)
+        self.n_points = 0 # number of point in the solution
