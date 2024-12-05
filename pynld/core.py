@@ -3,6 +3,7 @@ Core functionalities for dynamical systems.
 """
 import numpy as np
 from scipy.integrate import solve_ivp
+from joblib import Parallel, delayed
 
 class IntegrationParameters:
     def __init__(self, solver='LSODA', time_step = 1e-3, 
@@ -196,3 +197,33 @@ class DynamicalSystem:
         self.x_sol = np.zeros((self.N_dim,0), dtype=np.float64)
         self.xdot_sol = np.zeros((self.N_dim,0), dtype=np.float64)
         self.n_points = 0 # number of point in the solution
+
+    def run_parameter(self, eval_f, p, p_range, t_range, tr=0, parallel=-1):
+        """
+        Calls the `evaluate` function for each value of parameter `p` in
+        `p_range`.
+        Returns an array of outputs of `evaluate` for each `p`.
+        Parameters:
+            eval_f: a callable that returns a single or 
+            array of values.
+            t_range and tr: parameters that are passed
+            to the integrate method.
+            p: name of the parameter that should be considered
+            p_range: range of change of parameter p
+            parallel: number of CPU cores to use for parallel computation.
+            If 0, then single core is used, if -1 (default), 
+            all available CPU cores are used.
+        """
+        if p not in self.p_names:
+            raise ValueError(f"{p} is not found in the list of parameters.") 
+
+        def run(p_val):
+            self.reset()
+            self.set_parameter(p, p_val)
+
+            return self.evaluate(eval_f, t_range, tr)
+        
+        run_vals = Parallel(n_jobs=parallel)(delayed(run)(p_val) 
+                                             for p_val in p_range)
+        
+        return np.asarray(run_vals)
