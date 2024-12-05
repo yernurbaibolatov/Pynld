@@ -174,13 +174,17 @@ class DynamicalSystem:
             to the integrate method.
         """
         self.integrate(t_range, tr)
+        # check the dimensions of the eval_f function
+        N_dim = len(eval_f(self.t_sol[0], self.x_sol[:,0], self.xdot_sol[:,0]))
  
-        f_eval = np.zeros((self.n_points), dtype=np.float64)
+        f_eval = np.zeros((N_dim, self.n_points), dtype=np.float64)
         for i in range(self.n_points):
-            f_eval[i] = eval_f(self.t_sol[i],
-                               self.x_sol[:,i],
-                               self.xdot_sol[:,i])
-        return f_eval
+            f_eval[:,i] = eval_f(self.t_sol[i],
+                                 self.x_sol[:,i],
+                                 self.xdot_sol[:,i])
+        
+        # reduce = average
+        return np.mean(f_eval, axis=1)
     
     def reset(self):
         # Resets the system back to its initial condition
