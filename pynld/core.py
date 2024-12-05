@@ -63,7 +63,7 @@ class DynamicalSystem:
         # technical parameters
         self.N_dim = len(x0) # dimension of the system (without time)
         self.dt = self.integration_params.time_step # time step for solvers
-        # default solver is Runge-Kutta 4(5)
+        # default solver is LSODA
         self.solver = self.integration_params.solver 
 
         # trajectory of the last integration
@@ -161,11 +161,12 @@ class DynamicalSystem:
         self.xdot = self.xdot_sol[:,-1]
         return
 
-    def evaluate(self, eval_f, t_range, tr=0):
+    def evaluate(self, eval_f, t_range, tr=0, reduce="average"):
         """
         Evaluate a function eval_f(t, x, xdot) for
         each point of the solution obtained from the
-        integrate method.
+        integrate method. Returns a vector of computed
+        values.
         Parameters:
             eval_f: a callable that returns a single or 
             array of values.
