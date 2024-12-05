@@ -3,7 +3,7 @@ Core functionalities for dynamical systems.
 """
 import numpy as np
 from scipy.integrate import solve_ivp
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 
 class IntegrationParameters:
     def __init__(self, solver='LSODA', time_step = 1e-3, 
@@ -223,6 +223,9 @@ class DynamicalSystem:
 
             return self.evaluate(eval_f, t_range, tr)
         
+        print(f"Simulation is running for parameter {p} in range: {p_range[0]}:{p_range[-1]}")
+        num_cores = "all cores" if parallel == -1 else str(parallel)
+        print(f"Using {num_cores} for parallel computing ({cpu_count()} is available)")
         run_vals = Parallel(n_jobs=parallel)(delayed(run)(p_val) 
                                              for p_val in p_range)
         
