@@ -174,6 +174,7 @@ class DynamicalSystem:
             t_range and tr: parameters that are passed
             to the integrate method.
         """
+        self.reset()
         self.integrate(t_range, tr)
         # check the dimensions of the eval_f function
         N_dim = len(eval_f(self.t_sol[0], self.x_sol[:,0], self.xdot_sol[:,0]))
@@ -218,15 +219,16 @@ class DynamicalSystem:
             raise ValueError(f"{p} is not found in the list of parameters.") 
 
         def run(p_val):
-            self.reset()
             self.set_parameter(p, p_val)
 
             return self.evaluate(eval_f, t_range, tr)
         
-        print(f"Simulation is running for parameter {p} in range: {p_range[0]}:{p_range[-1]}")
+        print(f"Simulation is running for parameter '{p}' in range: [{p_range[0]}:{p_range[-1]}]")
         num_cores = "all cores" if parallel == -1 else str(parallel)
         print(f"Using {num_cores} for parallel computing ({cpu_count()} is available)")
+        print("...")
         run_vals = Parallel(n_jobs=parallel)(delayed(run)(p_val) 
                                              for p_val in p_range)
         
+        print("Simulation finished.")
         return np.asarray(run_vals)
