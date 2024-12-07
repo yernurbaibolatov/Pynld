@@ -2,14 +2,7 @@ import matplotlib.pyplot as plt
 import scienceplots
 from bokeh.plotting import figure, show, output_notebook 
 from bokeh.models import HoverTool, ColumnDataSource
-
-PLOT_COLORS = [
-    '#344966', # Indigo dye
-    '#FF6666', # Bittersweet
-    '#0D1821', # Rich black
-    '#55D6BE', # Turquoise
-    '#E6AACE'  # Lavender pink
-]
+from configs import PLOT_COLORS
 
 # Time evolution plots
 def evolution_plot(ds, var_names=None, method='MPL', notebook=True):
