@@ -1,5 +1,5 @@
 import numpy as np
-from pynld.core import DynamicalSystem
+from pynld.ds import DynamicalSystem
 import matplotlib.pyplot as plt
 import scienceplots
 

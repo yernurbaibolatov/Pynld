@@ -4,6 +4,21 @@ Core functionalities for dynamical systems.
 import numpy as np
 from scipy.integrate import solve_ivp
 from joblib import Parallel, delayed, cpu_count
+from pynld.abstract_integrator import AbstractIntegrator
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+from cycler import cycler
+import scienceplots
+
+# nice colors for plotting
+PLOT_COLORS = [
+    '#344965', # Indigo dye
+    '#FF6665', # Bittersweet
+    '#1D1821', # Rich black
+    '#54D6BE', # Turquoise
+    '#E5AACE'  # Lavender pink
+]
+
 
 class IntegrationParameters:
     def __init__(self, solver='LSODA', time_step = 1e-3, 
@@ -13,38 +28,33 @@ class IntegrationParameters:
         self.accuracy = accuracy
         self.n_eval = n_eval
 
-class DynamicalSystem:
-    def __init__(self, system, t0, x0, parameters, 
+class DynamicalSystem(AbstractIntegrator):
+    def __init__(self, system_func, t0, x0, parameters, 
                  integration_params = None, jac=None):
         """
         Initialize the dynamical system.
-        
+
         Parameters:
-            equations (function): A function defining the system of equations (dx/dt = f(t, x, p)). x and p are numpy arrays 
-            t0: Initial time
-            x0: A dictionary of initial conditions for the system.
-            parameters: A dictionary of parameters of the system
-            jac (optional): the Jacobian of the system 
-        Example:
-            parameters = {
-                'nu':   1.1,
-                'eta':  0.1,
-                'beta': 1.0
-            }
-            x0 = {
-                'x':    1.0,
-                'y':    0.0
-            }  
+        - system_func: callable, system of equations (dx/dt = f(t, x, p)).
+        - t0: float, initial time.
+        - x0: dict, initial conditions of the system.
+        - parameters: dict, parameters of the system.
+        - integration_params: IntegrationParameters object, optional.
+        - jac: callable, Jacobian of the system, optional.
         """
-        if not callable(system):
+        if not callable(system_func):
             raise TypeError("The 'system' argument must be a callable.")
         if not isinstance(x0, dict) or not isinstance(parameters, dict):
             raise TypeError("'x0' and 'parameters' must be dictionaries.")
         
+        super().__init__(
+            solver=integration_params.solver if integration_params else 'LSODA',
+            time_step=integration_params.time_step if integration_params else 1e-3,
+            n_eval=integration_params.n_eval if integration_params else 50_000,
+        )
 
-        self.system = system
+        self.system_func = system_func
         self.jac = jac
-        self.integration_params = integration_params or IntegrationParameters()
 
         # extracting the parameters
         self.p_names = list(parameters.keys())
@@ -55,7 +65,7 @@ class DynamicalSystem:
         self.x = np.array(list(x0.values()), dtype=np.float64)
 
         self.t = t0
-        self.xdot = system(self.t, self.x, self.p)
+        self.xdot = system_func(self.t, self.x, self.p)
 
         # save the initial conditions
         self.initial_t = t0
@@ -63,9 +73,6 @@ class DynamicalSystem:
 
         # technical parameters
         self.N_dim = len(x0) # dimension of the system (without time)
-        self.dt = self.integration_params.time_step # time step for solvers
-        # default solver is LSODA
-        self.solver = self.integration_params.solver 
 
         # trajectory of the last integration
         self.t_sol = np.zeros(0, dtype=np.float64)
@@ -94,10 +101,34 @@ class DynamicalSystem:
             status += f"\t{name}:\t{val:2.3f}\n"
 
         status += "Integration parameters:\n"
-        status += f"Solver: {self.integration_params.solver}\n"
-        status += f"Time step: {self.integration_params.time_step}\n"
+        status += f"Solver: {self.solver}\n"
+        status += f"N-points: {self.n_eval}\n"
         return status
     
+    def __plot_init__(self, notebook=False):
+        # initialize the matplotlib parameters
+        if notebook:
+            plt.style.use(['science', 'nature', 'notebook'])
+        else:
+            plt.style.use(['science', 'nature'])
+
+        plt.rcParams.update({
+            # Figure and layout
+            'figure.figsize': [12, 6],                 # Default figure size
+            'axes.prop_cycle': cycler(color=PLOT_COLORS),  # Custom color cycle for lines
+            'lines.linewidth': 2.0,                   # Line width
+            'lines.markersize': 8,                    # Marker size
+            # Grid
+            'axes.grid': True,                        # Enable grid
+            'grid.alpha': 0.7,                        # Transparency of grid lines
+            'grid.linestyle': '--',                   # Dashed grid lines
+            'grid.linewidth': 0.6,                    # Grid line width
+
+            # Colormap (for plots like heatmaps)
+            'image.cmap': 'viridis',                  # Default colormap
+            'image.interpolation': 'nearest',         # No smoothing in heatmaps
+        })
+
     def set_parameter(self, name, val):
         # Set the parameter 'name' to value 'val'
         if name in self.p_names:
@@ -105,6 +136,9 @@ class DynamicalSystem:
             self.p[i] = val
         else:
             raise ValueError(f"{name} is not found in the list of parameters.")
+
+    def system(self, t, x, p):
+        return self.system_func(t, x, p)
 
     def integrate(self, t_range, tr=0):
         # Evolves the system by t_range
@@ -115,13 +149,13 @@ class DynamicalSystem:
                            t_span=tr_span, 
                            y0=self.x, 
                            args=(self.p,), 
-                           method=self.integration_params.solver)
+                           method=self.solver)
         else: 
             tr_sol = solve_ivp(self.system, 
                            t_span=tr_span, 
                            y0=self.x, 
                            args=(self.p,), 
-                           method=self.integration_params.solver,
+                           method=self.solver,
                            jac=self.jac)
         self.t = tr_sol.t[-1]
         self.x = tr_sol.y[:,-1]
@@ -129,7 +163,7 @@ class DynamicalSystem:
         # actual solution
         t_span = [self.t, self.t + t_range]
         t_eval = np.linspace(self.t, self.t + t_range, 
-                           self.integration_params.n_eval)
+                           self.n_eval)
         # integrate the system
         if self.jac is None:
             sol = solve_ivp(self.system, 
@@ -137,14 +171,14 @@ class DynamicalSystem:
                         y0=self.x, 
                         t_eval=t_eval, 
                         args=(self.p,),
-                        method=self.integration_params.solver)
+                        method=self.solver)
         else:
             sol = solve_ivp(self.system, 
                         t_span=t_span, 
                         y0=self.x, 
                         t_eval=t_eval, 
                         args=(self.p,),
-                        method=self.integration_params.solver,
+                        method=self.solver,
                         jac=self.jac)
         # store the solution
         self.t_sol = sol.t
@@ -233,31 +267,15 @@ class DynamicalSystem:
         print("Simulation finished.")
         return np.asarray(run_vals)
 
-class AutonomousDynamicalSystem(DynamicalSystem):
-    def __init__(self, system, x0, parameters, 
-                 integration_params=None, jac=None):
-        def aut_system(_, x, p):
-            return system(x, p)
-        
-        super().__init__(aut_system, 0, x0, parameters, integration_params, jac)
-    
-    def __repr__(self):
-        status = "A generic autonomous dynamical system\n"
-        status += f"Dimension:\t{self.N_dim }\n"
-        
-        status += "State vector:\n"
-        for name, val in zip(self.x_names, self.x):
-            status += f"\t{name}:\t{val:2.3f}\n"
-        
-        status += "Field vector:\n"
-        for name, val in zip(self.x_names, self.xdot):
-            status += f"\td{name}/dt:\t{val:2.3f}\n"
-        
-        status += "Parameters:\n"
-        for name, val in zip(self.p_names, self.p):
-            status += f"\t{name}:\t{val:2.3f}\n"
+    def time_plot(self, notebook=False):
+        self.__plot_init__(notebook)
 
-        status += "Integration parameters:\n"
-        status += f"Solver: {self.integration_params.solver}\n"
-        status += f"Time step: {self.integration_params.time_step}\n"
-        return status
+        for i in range(len(self.x_sol)):
+            plt.plot(self.t_sol, self.x_sol[i], label=f"{self.x_names[i]}")
+
+        plt.xlabel('Time')
+        plt.ylabel('Variables')
+        plt.legend(loc='best')
+        plt.show()
+
+   

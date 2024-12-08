@@ -2,7 +2,7 @@
 Example script demonstrating the usage of Pynld.
 """
 
-from pynld.core import DynamicalSystem
+from pynld.ds import DynamicalSystem
 from pynld.plotting import evolution_dot_plot
 import numpy as np
 

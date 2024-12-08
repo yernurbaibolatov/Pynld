@@ -1,6 +1,5 @@
 import numpy as np
-from pynld.core import DynamicalSystem, AutonomousDynamicalSystem
-from pynld.configs import PLOT_COLORS
+from pynld.ds import DynamicalSystem 
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import scienceplots
