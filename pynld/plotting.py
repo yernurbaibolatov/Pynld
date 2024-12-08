@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import scienceplots
 from bokeh.plotting import figure, show, output_notebook 
 from bokeh.models import HoverTool, ColumnDataSource
-from configs import PLOT_COLORS
+from pynld.configs import PLOT_COLORS
 
 # Time evolution plots
 def evolution_plot(ds, var_names=None, method='MPL', notebook=True):
@@ -50,7 +50,7 @@ def evolution_plot_mpl(ds, var_names, notebook):
     if notebook:
         plt.style.use(['science', 'grid', 'notebook'])
     else:
-        plt.style.use(['science', 'grid'])
+        plt.style.use(['science', 'grid', 'nature'])
 
     plt.figure(figsize=(12,6))
     if type(var_names) is str:
@@ -110,7 +110,7 @@ def evolution_dot_plot_mpl(ds, var_names, notebook):
     if notebook:
         plt.style.use(['science', 'grid', 'notebook'])
     else:
-        plt.style.use(['science', 'grid'])
+        plt.style.use(['science', 'grid', 'nature'])
 
     plt.figure(figsize=(12,6))
     if type(var_names) is str:
@@ -181,7 +181,7 @@ def phase_portrait_mpl(ds, x1, x2, notebook):
     if notebook:
         plt.style.use(['science', 'grid', 'notebook'])
     else:
-        plt.style.use(['science', 'grid'])
+        plt.style.use(['science', 'grid', 'nature'])
 
     plt.figure(figsize=(8,8))
     i = ds.x_names.index(x1)

@@ -232,3 +232,32 @@ class DynamicalSystem:
         
         print("Simulation finished.")
         return np.asarray(run_vals)
+
+class AutonomousDynamicalSystem(DynamicalSystem):
+    def __init__(self, system, x0, parameters, 
+                 integration_params=None, jac=None):
+        def aut_system(_, x, p):
+            return system(x, p)
+        
+        super().__init__(aut_system, 0, x0, parameters, integration_params, jac)
+    
+    def __repr__(self):
+        status = "A generic autonomous dynamical system\n"
+        status += f"Dimension:\t{self.N_dim }\n"
+        
+        status += "State vector:\n"
+        for name, val in zip(self.x_names, self.x):
+            status += f"\t{name}:\t{val:2.3f}\n"
+        
+        status += "Field vector:\n"
+        for name, val in zip(self.x_names, self.xdot):
+            status += f"\td{name}/dt:\t{val:2.3f}\n"
+        
+        status += "Parameters:\n"
+        for name, val in zip(self.p_names, self.p):
+            status += f"\t{name}:\t{val:2.3f}\n"
+
+        status += "Integration parameters:\n"
+        status += f"Solver: {self.integration_params.solver}\n"
+        status += f"Time step: {self.integration_params.time_step}\n"
+        return status
