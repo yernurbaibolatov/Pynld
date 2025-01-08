@@ -259,7 +259,7 @@ class DynamicalSystem(AbstractIntegrator):
         
         print(f"Simulation is running for parameter '{p}' in range: [{p_range[0]}:{p_range[-1]}]")
         num_cores = "all cores" if parallel == -1 else str(parallel)
-        print(f"Using {num_cores} for parallel computing ({cpu_count()} is available)")
+        print(f"Using {num_cores} for parallel computing ({cpu_count()} available cores)")
         print("...")
         run_vals = Parallel(n_jobs=parallel)(delayed(run)(p_val) 
                                              for p_val in p_range)

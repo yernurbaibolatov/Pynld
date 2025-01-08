@@ -1,18 +1,7 @@
 import numpy as np
 from pynld.ds import DynamicalSystem
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
-import scienceplots
-from cycler import cycler
 
-# nice colors for plotting
-PLOT_COLORS = [
-    '#344965', # Indigo dye
-    '#FF6665', # Bittersweet
-    '#1D1821', # Rich black
-    '#54D6BE', # Turquoise
-    '#E5AACE'  # Lavender pink
-]
 
 class AutonomousDynamicalSystem(DynamicalSystem):
     def __init__(self, system_func, x0, parameters,
@@ -47,5 +36,37 @@ class AutonomousDynamicalSystem(DynamicalSystem):
         return super().integrate(t_range, tr)
 
 class OneDimensional(AutonomousDynamicalSystem):
-    def __init__(self, system_func, x0, parameters, integration_params=None, jac=None):
+    def __init__(self, system_func, x0, parameters, integration_params=None,
+                 jac=None):
+        if len(x0)>1:
+            raise ValueError("Initial conditions must be one-dimensional")
+        x0_val = next(iter(x0.values()))
+        if len(system_func(x0_val, parameters.values())) > 1:
+            raise ValueError(f"{system_func} must return a one-dimnensional object")
+        
         super().__init__(system_func, x0, parameters, integration_params, jac)
+
+    def __repr__(self):
+        status = "A one-dimensional dynamical system\n"
+        
+        status += "State variable:\n"
+        for name, val in zip(self.x_names, self.x):
+            status += f"\t{name}:\t{val:2.3f}\n"
+        
+        status += "State variable time-derivative:\n"
+        for name, val in zip(self.x_names, self.xdot):
+            status += f"\td{name}/dt:\t{val:2.3f}\n"
+        
+        status += "Parameters:\n"
+        for name, val in zip(self.p_names, self.p):
+            status += f"\t{name}:\t{val:2.3f}\n"
+
+        status += "Integration parameters:\n"
+        status += f"Solver: {self.solver}\n"
+        status += f"N-points: {self.n_eval}\n"
+        return status
+
+    def phase_protrait(self, notebook):
+        self.__plot_init__(notebook)
+
+        
