@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 
 class AbstractIntegrator(ABC):
-    def __init__(self, solver='LSODA', time_step=1e-3, n_eval=50_000):
+    def __init__(self, solver='LSODA', time_step=1e-3):
         self.solver = solver
         self.time_step = time_step
-        self.n_eval = n_eval
 
     @abstractmethod
     def system(self, t, x, p):
