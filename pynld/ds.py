@@ -137,6 +137,16 @@ class DynamicalSystem(AbstractIntegrator):
         else:
             raise ValueError(f"{name} is not found in the list of parameters.")
 
+    def set_position(self, state_vector):
+        # set the system to the given point in a phase space
+        self.x_names = list(state_vector.keys())
+        self.x = np.array(list(state_vector.values()), dtype=np.float64)
+
+        self.xdot = self.system_func(self.t, self.x, self.p)
+
+        # save the initial conditions
+        self.initial_x = self.x
+
     def system(self, t, x, p):
         return self.system_func(t, x, p)
 
